@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in to Chatrix</title>
+<link rel="icon" type="image/png" href="chatrix-icon.png">
+<link rel="apple-touch-icon" href="chatrix-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f6f4;--card:#fff;--ink:#0a0a0a;--mute:#6b6b6b;--line:#dcdcd8;--field:#fafaf8;--btn:#0a0a0a;--btn-ink:#fff;--err:#b3261e;--ok:#1f6b3a;--bub:#0a0a0a0f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#050505;--card:#0f0f0f;--ink:#f5f5f5;--mute:#9a9a9a;--line:#2a2a2a;--field:#151515;--btn:#f5f5f5;--btn-ink:#0a0a0a;--err:#ff7b72;--ok:#6fd08c;--bub:#ffffff0d}}
+:root[data-theme="dark"]{--bg:#050505;--card:#0f0f0f;--ink:#f5f5f5;--mute:#9a9a9a;--line:#2a2a2a;--field:#151515;--btn:#f5f5f5;--btn-ink:#0a0a0a;--err:#ff7b72;--ok:#6fd08c;--bub:#ffffff0d}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:400 15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;place-items:center;padding:24px 16px;position:relative;overflow-x:hidden;transition:background .3s,color .3s}
+.bubbles{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bubbles span{position:absolute;background:var(--bub);border:1px solid var(--line);border-radius:22px;opacity:.7}
+.bubbles .b1{width:190px;height:64px;left:6%;top:14%;border-bottom-left-radius:6px}
+.bubbles .b2{width:130px;height:48px;left:12%;top:24%;border-bottom-right-radius:6px;margin-left:60px}
+.bubbles .b3{width:220px;height:70px;right:7%;bottom:18%;border-bottom-right-radius:6px}
+.bubbles .b4{width:110px;height:44px;right:12%;bottom:29%;border-bottom-left-radius:6px}
+.bubbles .b5{width:70px;height:36px;right:8%;top:12%;border-bottom-left-radius:6px}
+@media(max-width:720px){.bubbles .b1,.bubbles .b3{width:130px;height:46px}.bubbles .b2,.bubbles .b4{display:none}}
+.theme{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;z-index:3;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:transform .2s}
+.theme:hover{transform:scale(1.08)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.card{position:relative;z-index:1;width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:36px 32px 28px;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(max-width:480px){.card{padding:28px 20px 22px;border-radius:20px}}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.brand svg{width:40px;height:40px;flex:none}
+.brand b{font-size:24px;letter-spacing:-.04em;font-weight:700}
+h1{font-size:28px;line-height:1.15;letter-spacing:-.03em;margin:0 0 6px;font-weight:700}
+.tag{margin:0 0 24px;color:var(--mute);font-style:italic}
+.field{margin-bottom:16px}
+label{display:block;font-weight:500;font-size:13.5px;margin-bottom:6px}
+.wrap{position:relative}
+input[type=text],input[type=password],input[type=email]{width:100%;height:48px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--field);color:var(--ink);font:inherit;transition:border-color .2s,box-shadow .2s,background .2s}
+input:hover{border-color:var(--mute)}
+input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 14%,transparent);background:var(--card)}
+input[aria-invalid=true]{border-color:var(--err)}
+.wrap input{padding-right:48px}
+.eye{position:absolute;right:6px;top:6px;width:36px;height:36px;border:0;background:none;border-radius:10px;color:var(--mute);cursor:pointer;display:grid;place-items:center}
+.eye:hover{color:var(--ink);background:var(--line)}
+.msg{min-height:0;font-size:13px;color:var(--err);margin:6px 0 0}
+.msg:empty{display:none}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:2px 0 20px;font-size:13.5px}
+.chk{display:flex;align-items:center;gap:8px;margin:0;font-weight:400;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--ink);margin:0}
+a,.link{color:var(--ink);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line);background:none;border:0;padding:0;font:inherit;font-weight:500;cursor:pointer;transition:text-decoration-color .2s}
+a:hover,.link:hover{text-decoration-color:var(--ink)}
+.btn{width:100%;height:50px;border-radius:14px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);font:inherit;font-weight:600;font-size:15.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s,opacity .2s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink);opacity:1}
+.spin{width:18px;height:18px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:none}
+.loading .spin{display:block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.banner{display:none;margin-bottom:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--err);color:var(--err);font-size:13.5px}
+.banner.show{display:block}
+.banner.info{border-color:var(--line);color:var(--ink);background:var(--field)}
+.banner.ok{border-color:var(--ok);color:var(--ok)}
+.or{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:12.5px;margin:20px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.foot{text-align:center;margin:20px 0 0;color:var(--mute);font-size:14px}
+.view[hidden]{display:none}
+.view{animation:rise .35s ease both}
+.trust{display:flex;justify-content:center;gap:6px;margin-top:20px;color:var(--mute);font-size:12px;align-items:center}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.theme{position:fixed;overflow:hidden}
+.theme svg{position:absolute;transition:transform .6s cubic-bezier(.5,1.6,.4,1),opacity .35s}
+.theme .moon{opacity:0;transform:rotate(-120deg) scale(.3)}
+:root[data-theme="dark"] .theme .sun{opacity:0;transform:rotate(120deg) scale(.3)}
+:root[data-theme="dark"] .theme .moon{opacity:1;transform:none}
+.theme.pop{animation:pop .55s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(.8) rotate(-20deg)}100%{transform:scale(1) rotate(0)}}
+.theme::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--ink);opacity:0;transform:scale(0)}
+.theme.pop::after{animation:ring .55s ease-out}
+@keyframes ring{0%{opacity:.25;transform:scale(0)}100%{opacity:0;transform:scale(1.6)}}
+.card,.bubbles span,.theme,.eye,.brand rect{transition:background-color .4s,border-color .4s,color .4s,fill .4s}
+</style>
+</head>
+<body>
+<div class="bubbles" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span><span class="b5"></span></div>
+<button class="theme" id="theme" type="button" aria-label="Switch theme">
+<svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+<svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13.2A8.5 8.5 0 1 1 10.8 3a6.8 6.8 0 0 0 10.2 10.2z"/></svg>
+</button>
+
+<main class="card">
+<div class="brand">
+<svg viewBox="0 0 40 40" role="img" aria-label="Chatrix logo"><rect width="40" height="40" rx="12" fill="var(--ink)"/><path d="M12 11h14a5 5 0 0 1 5 5v5a5 5 0 0 1-5 5h-8l-5 4v-4h-1a5 5 0 0 1-5-5v-5a5 5 0 0 1 5-5z" fill="none" stroke="var(--bg)" stroke-width="2.2" stroke-linejoin="round" transform="translate(-1 -1)"/><path d="M15 15l9 9M24 15l-9 9" stroke="var(--bg)" stroke-width="2.2" stroke-linecap="round" transform="translate(-1 -2.5) scale(.9) translate(2 2)" opacity="0"/><path d="M14.5 17.5h11M14.5 22h6" stroke="var(--bg)" stroke-width="2.2" stroke-linecap="round" transform="translate(-1 -1)"/></svg>
+<b>Chatrix</b>
+</div>
+
+<section class="view" id="v-login">
+<h1>Welcome back to Chatrix</h1>
+<p class="tag">Your people. Your conversations. Your world.</p>
+<div class="banner" id="banner" role="alert"></div>
+<form id="form" novalidate>
+<div class="field">
+<label for="id">Email address or phone number</label>
+<input id="id" type="text" autocomplete="username" inputmode="email" placeholder="you@example.com or +234…" aria-describedby="id-e">
+<p class="msg" id="id-e"></p>
+</div>
+<div class="field">
+<label for="pw">Password</label>
+<div class="wrap">
+<input id="pw" type="password" autocomplete="current-password" placeholder="Enter your password" aria-describedby="pw-e">
+<button class="eye" id="eye" type="button" aria-label="Show password" aria-pressed="false">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle id="pupil" cx="12" cy="12" r="3"/><path id="slash" d="M3 3l18 18" style="display:none"/></svg>
+</button>
+</div>
+<p class="msg" id="pw-e"></p>
+</div>
+<div class="row">
+<label class="chk"><input type="checkbox" id="rem"> Remember me</label>
+<button type="button" class="link" id="forgot">Forgot password?</button>
+</div>
+<button class="btn" id="go" type="submit"><span class="spin"></span><span id="go-t">Log in</span></button>
+</form>
+<div class="or">OR</div>
+<button class="btn ghost" id="google" type="button">
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.55 21.3 7.27 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29a11.86 11.86 0 0 0 0 10.76l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.55 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"/></svg><span id="google-t">Continue with Google</span>
+</button>
+<p class="foot">New to Chatrix? <button type="button" class="link" id="to-signup">Create an account</button></p>
+</section>
+
+<section class="view" id="v-reset" hidden>
+<h1>Reset your password</h1>
+<p class="tag">Enter your account email and we’ll send a reset link.</p>
+<div class="banner" id="banner2" role="alert"></div>
+<form id="rform" novalidate>
+<div class="field">
+<label for="rem-email">Email address</label>
+<input id="rem-email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="re-e">
+<p class="msg" id="re-e"></p>
+</div>
+<button class="btn" id="rgo" type="submit"><span class="spin"></span><span>Send reset link</span></button>
+</form>
+<p class="foot"><button class="link" id="back" type="button">Back to log in</button></p>
+</section>
+
+<section class="view" id="v-signup" hidden>
+<h1>Create your Chatrix account</h1>
+<p class="tag">Join your people in a minute.</p>
+<div class="banner" id="banner3" role="alert"></div>
+<form id="sform" novalidate>
+<div class="field"><label for="s-name">Full name</label><input id="s-name" type="text" autocomplete="name" placeholder="Your name" aria-describedby="sn-e"><p class="msg" id="sn-e"></p></div>
+<div class="field"><label for="s-email">Email address</label><input id="s-email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="se-e"><p class="msg" id="se-e"></p></div>
+<div class="field"><label for="s-pw">Password</label><input id="s-pw" type="password" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="sp-e"><p class="msg" id="sp-e"></p></div>
+<div class="field"><label for="s-pw2">Confirm password</label><input id="s-pw2" type="password" autocomplete="new-password" placeholder="Repeat your password" aria-describedby="sc-e"><p class="msg" id="sc-e"></p></div>
+<div class="field"><label class="chk"><input type="checkbox" id="s-terms"> I agree to the Terms and Privacy Policy</label><p class="msg" id="st-e"></p></div>
+<button class="btn" id="sgo" type="submit"><span class="spin"></span><span>Create account</span></button>
+</form>
+<p class="foot">Already on Chatrix? <button class="link" id="sback" type="button">Log in</button></p>
+</section>
+<div class="trust"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Encrypted connection. Passwords are never stored in the page.</div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ============ AUTH LAYER (swap here) ============
+   Fill FIREBASE_CONFIG (public web config) and load the Firebase compat SDK
+   to enable real sign-in. With no config, every call fails honestly: nothing is
+   ever treated as logged in. */
+var FIREBASE_CONFIG = {apiKey:"AIzaSyCd6vIbfK5aGOZLdAWK4j0T4YsSnjcGDpM",authDomain:"chatrix-e3269.firebaseapp.com",projectId:"chatrix-e3269",storageBucket:"chatrix-e3269.firebasestorage.app",messagingSenderId:"708995672893",appId:"1:708995672893:web:3213e24a26e71cfe447354"}; // public web config; security comes from Firestore rules
+if(window.firebase&&!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+var Auth = {
+  ready: function(){ return !!(FIREBASE_CONFIG && window.firebase); },
+  fail: function(){ var e=new Error("not-configured"); e.code="app/not-configured"; return Promise.reject(e); },
+  signIn: function(id, pw, remember){
+    if(!this.ready()) return this.fail();
+    var a=firebase.auth();
+    return a.setPersistence(remember?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.SESSION)
+      .then(function(){return a.signInWithEmailAndPassword(id,pw);});
+  },
+  signInGoogle: function(){ if(!this.ready()) return this.fail(); if(location.protocol==="file:"){var fe=new Error("file");fe.code="app/file-protocol";return Promise.reject(fe);} var gp=new firebase.auth.GoogleAuthProvider(); gp.setCustomParameters({prompt:"select_account"}); return firebase.auth().signInWithPopup(gp).then(function(c){ try{ if(c.additionalUserInfo&&c.additionalUserInfo.isNewUser) localStorage.setItem("chatrix-ob-"+c.user.uid,"1"); }catch(e){} return c; }); },
+  signUp: function(name,email,pw){
+    if(!this.ready()) return this.fail();
+    return firebase.auth().createUserWithEmailAndPassword(email,pw).then(function(c){
+      var u=c.user;
+      try{ localStorage.setItem("chatrix-ob-"+u.uid,"1"); }catch(e){} // reliable "new account" flag for the welcome tour
+      return u.updateProfile({displayName:name}).then(function(){
+        return firebase.firestore().doc("users/"+u.uid).set({name:name,email:email,handle:"@"+name.toLowerCase().replace(/\s+/g,""),bio:"",photoURL:"",onboarded:false,followersCount:0,followingCount:0,likesCount:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      }).catch(function(e){console.warn("Profile document not written:",e)});
+    });
+  },
+  reset: function(email){ if(!this.ready()) return this.fail(); return firebase.auth().sendPasswordResetEmail(email); },
+  onUser: function(cb){ if(this.ready()) firebase.auth().onAuthStateChanged(cb); }
+};
+Auth.onUser(function(u){ if(u&&!Auth.busy) location.href="chatrix-home.html"; }); // protected pages must also check Auth state
+
+/* ============ UI ============ */
+var $=function(i){return document.getElementById(i)};
+var MSG={
+ "app/file-protocol":"Google sign-in can’t run from a file on your computer. Open Chatrix from its web address, or from localhost, and try again.",
+ "auth/popup-blocked":"Your browser blocked the Google window. Allow pop-ups for this site and try again.",
+ "auth/cancelled-popup-request":"Another Google window was already open. Close it and try again.",
+ "auth/unauthorized-domain":"This website address isn’t approved for Google sign-in yet. Add it in Firebase under Authentication, Settings, Authorized domains.",
+ "auth/operation-not-allowed":"Google sign-in isn’t turned on yet. Enable Google in Firebase under Authentication, Sign-in method.",
+ "auth/account-exists-with-different-credential":"An account with this email already exists. Log in with your email and password instead.",
+ "auth/operation-not-supported-in-this-environment":"Google sign-in doesn’t work in this browser view. Open Chatrix in Chrome, Safari or Edge.",
+ "auth/web-storage-unsupported":"Your browser is blocking storage. Turn off private mode or allow cookies, then try again.",
+ "app/not-configured":"Sign-in isn’t connected yet. Add your Firebase config to enable real authentication.",
+ "auth/invalid-credential":"That email or password is incorrect. Check both and try again.",
+ "auth/wrong-password":"That password is incorrect. Try again or reset it.",
+ "auth/user-not-found":"No account matches that email. Check it or create an account.",
+ "auth/too-many-requests":"Too many attempts. Wait a few minutes or reset your password.",
+ "auth/network-request-failed":"Can’t reach Chatrix. Check your connection and try again.",
+ "auth/email-already-in-use":"An account with that email already exists. Log in instead.",
+ "auth/weak-password":"Choose a stronger password with at least 8 characters.",
+ "auth/invalid-email":"That email address isn’t valid.",
+ "auth/user-disabled":"This account has been disabled. Contact support."
+};
+function say(el,text,kind){el.textContent=text||"";el.className="banner"+(text?" show "+(kind||""):"")}
+function err(inp,msgEl,t){msgEl.textContent=t||"";inp.setAttribute("aria-invalid",t?"true":"false")}
+function busy(btn,on){btn.disabled=on;btn.classList.toggle("loading",on)}
+var emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, phoneRe=/^\+?[0-9][0-9\s\-()]{7,16}$/;
+
+$("eye").onclick=function(){
+ var show=$("pw").type==="password";
+ $("pw").type=show?"text":"password";
+ this.setAttribute("aria-pressed",show);this.setAttribute("aria-label",show?"Hide password":"Show password");
+ $("slash").style.display=show?"block":"none";
+};
+$("form").addEventListener("submit",function(e){
+ e.preventDefault();say($("banner"),"");
+ var id=$("id").value.trim(),pw=$("pw").value,ok=true;
+ if(!id){err($("id"),$("id-e"),"Enter your email address or phone number.");ok=false}
+ else if(!emailRe.test(id)&&!phoneRe.test(id)){err($("id"),$("id-e"),"That doesn’t look like an email or phone number.");ok=false}
+ else err($("id"),$("id-e"),"");
+ if(!pw){err($("pw"),$("pw-e"),"Enter your password.");ok=false}
+ else if(pw.length<6){err($("pw"),$("pw-e"),"Passwords have at least 6 characters.");ok=false}
+ else err($("pw"),$("pw-e"),"");
+ if(!ok){(document.querySelector("[aria-invalid=true]")||{focus:function(){}}).focus();return}
+ if(phoneRe.test(id)&&!emailRe.test(id)){say($("banner"),"Phone login needs Firebase phone verification (SMS code). It isn’t enabled yet; use your email for now.","info");return}
+ busy($("go"),true);$("go-t").textContent="Logging in…";
+ Auth.signIn(id,pw,$("rem").checked).then(function(){location.href="chatrix-home.html"})
+ .catch(function(x){say($("banner"),MSG[x.code]||"Something went wrong. Try again.",x.code==="app/not-configured"?"info":"")})
+ .then(function(){busy($("go"),false);$("go-t").textContent="Log in"});
+});
+$("google").onclick=function(){var b=$("google"),t=$("google-t");say($("banner"),"");b.disabled=true;t.textContent="Opening Google…";
+ Auth.busy=true;Auth.signInGoogle().then(function(){location.href="chatrix-home.html"}).catch(function(x){Auth.busy=false;say($("banner"),x.code==="auth/popup-closed-by-user"?"Google sign-in was closed before finishing.":(MSG[x.code]||"Google sign-in failed ("+(x.code||"unknown")+")."),x.code==="app/not-configured"?"info":"")}).then(function(){b.disabled=false;t.textContent="Continue with Google"});
+};
+function view(n){["login","reset","signup"].forEach(function(v){$("v-"+v).hidden=v!==n});
+ ({login:$("id"),reset:$("rem-email"),signup:$("s-name")})[n].focus();history.replaceState(null,"",n==="login"?"#":"#"+n)}
+$("forgot").onclick=function(){$("rem-email").value=emailRe.test($("id").value.trim())?$("id").value.trim():"";view("reset")};
+$("back").onclick=function(){view("login")};
+if(location.hash==="#reset")view("reset");
+if(location.hash==="#signup")view("signup");
+$("to-signup").onclick=function(){view("signup")};
+$("sback").onclick=function(){view("login")};
+$("rform").addEventListener("submit",function(e){
+ e.preventDefault();say($("banner2"),"");var v=$("rem-email").value.trim();
+ if(!emailRe.test(v)){err($("rem-email"),$("re-e"),"Enter the email address you signed up with.");$("rem-email").focus();return}
+ err($("rem-email"),$("re-e"),"");busy($("rgo"),true);
+ Auth.reset(v).then(function(){say($("banner2"),"If an account exists for "+v+", a reset link is on its way.","ok")})
+ .catch(function(x){say($("banner2"),MSG[x.code]||"Couldn’t send the reset link. Try again.",x.code==="app/not-configured"?"info":"")})
+ .then(function(){busy($("rgo"),false)});
+});
+$("sform").addEventListener("submit",function(e){
+ e.preventDefault();say($("banner3"),"");
+ var n=$("s-name").value.trim(),m=$("s-email").value.trim(),p=$("s-pw").value,c=$("s-pw2").value,t=$("s-terms").checked,ok=true;
+ function chk(bad,inp,el,txt){err(inp,el,bad?txt:"");if(bad)ok=false}
+ chk(n.length<2,$("s-name"),$("sn-e"),"Enter your full name.");
+ chk(!emailRe.test(m),$("s-email"),$("se-e"),"Enter a valid email address.");
+ chk(p.length<8,$("s-pw"),$("sp-e"),"Use at least 8 characters.");
+ chk(c!==p||!c,$("s-pw2"),$("sc-e"),"Passwords don’t match.");
+ $("st-e").textContent=t?"":"Agree to the Terms to continue.";if(!t)ok=false;
+ if(!ok){(document.querySelector("#sform [aria-invalid=true]")||$("s-terms")).focus();return}
+ busy($("sgo"),true);
+ Auth.busy=true;Auth.signUp(n,m,p).then(function(){location.href="chatrix-home.html"})
+ .catch(function(x){Auth.busy=false;say($("banner3"),MSG[x.code]||"Couldn’t create your account. Try again.",x.code==="app/not-configured"?"info":"")})
+ .then(function(){busy($("sgo"),false)});
+});
+/* theme */
+var root=document.documentElement;
+var dm=matchMedia("(prefers-color-scheme:dark)");
+var saved=null;try{saved=localStorage.getItem("chatrix-theme")}catch(e){}
+root.setAttribute("data-theme",saved||(dm.matches?"dark":"light"));
+$("theme").onclick=function(){
+ var n=root.getAttribute("data-theme")==="dark"?"light":"dark";
+ root.setAttribute("data-theme",n);try{localStorage.setItem("chatrix-theme",n)}catch(e){}
+ var b=this;b.classList.remove("pop");void b.offsetWidth;b.classList.add("pop");
+ b.setAttribute("aria-label",n==="dark"?"Switch to light theme":"Switch to dark theme");
+};
+$("theme").setAttribute("aria-label",root.getAttribute("data-theme")==="dark"?"Switch to light theme":"Switch to dark theme");
+</script>
+</body>
+</html>
