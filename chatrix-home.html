@@ -6,6 +6,8 @@
 <title>Home · Chatrix</title>
 <link rel="icon" type="image/png" href="chatrix-icon.png">
 <link rel="apple-touch-icon" href="chatrix-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -682,6 +684,7 @@ button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
@@ -1325,9 +1328,44 @@ function obAct(a){
 document.addEventListener("change",function(e){if(e.target.id!=="obphoto")return;var f=e.target.files[0];if(!f)return;
  crop(f,200,200,.85,function(d){if(d.length>400000){toast("Image is too large. Try a smaller one.");return}OB.photo=d;obRender()});e.target.value=""});
 function start(name){S.name=name;$("mename").textContent=name;paintMe();$("nb").style.display=S.unread?"block":"none";$("nb").textContent=S.unread;right();var h=(location.hash||"").replace("#/","");if(h.indexOf("user/")===0&&S.uid)openUser(h.slice(5));else go(h||"home");document.querySelector(".mbrand").innerHTML=document.querySelector(".side .brand").innerHTML;var bt=$("boot");if(bt)bt.remove()}
+/* ============ EMAIL VERIFICATION GATE (Resend via Cloud Function) ============ */
+var REQUIRE_VERIFIED=true; // set false to let unverified email/password accounts in
+function needsVerify(u){return REQUIRE_VERIFIED&&!u.emailVerified&&(u.providerData||[]).some(function(p){return p.providerId==="password"})}
+function verifyGate(u){
+ var bt=document.getElementById("boot");if(bt)bt.remove();
+ var g=document.createElement("div");g.id="vgate";
+ g.setAttribute("style","position:fixed;inset:0;z-index:99999;background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit");
+ var bs="width:100%;height:48px;border-radius:14px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;margin-top:10px;";
+ g.innerHTML='<div role="dialog" aria-labelledby="vg-t" style="max-width:420px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px;text-align:center">'
+  +'<h1 id="vg-t" style="font-size:22px;margin:0 0 10px">Verify your email</h1>'
+  +'<p style="margin:0;color:var(--mute);font-size:14.5px;line-height:1.55">We sent a verification link to <b id="vg-m" style="color:var(--ink)"></b>. Open it, then come back here. Check your spam folder if it doesn’t show up.</p>'
+  +'<p id="vg-s" role="status" style="min-height:20px;margin:14px 0 0;font-size:13.5px;color:var(--mute)"></p>'
+  +'<button id="vg-c" type="button" style="'+bs+'background:var(--btn);color:var(--btn-ink);border:1px solid var(--btn)">I’ve verified</button>'
+  +'<button id="vg-r" type="button" style="'+bs+'background:transparent;color:var(--ink);border:1px solid var(--line)">Resend email</button>'
+  +'<button id="vg-o" type="button" style="'+bs+'background:transparent;color:var(--mute);border:0;height:40px;font-weight:500">Log out</button></div>';
+ document.body.appendChild(g);
+ var $g=function(i){return document.getElementById(i)},st=$g("vg-s");
+ $g("vg-m").textContent=u.email||"your email";
+ function say(t,bad){st.textContent=t;st.style.color=bad?"var(--err)":"var(--mute)"}
+ function check(manual){return u.reload().then(function(){
+   if(u.emailVerified){return u.getIdToken(true).then(function(){location.reload()})}
+   if(manual)say("Not verified yet. Open the link in the email first.",true)
+  }).catch(function(){if(manual)say("Couldn’t check right now. Try again.",true)})}
+ $g("vg-c").onclick=function(){check(true)};
+ var cd=0,cdT=null,rb=$g("vg-r");
+ function tick(){if(cd<=0){clearInterval(cdT);rb.disabled=false;rb.style.opacity="";rb.textContent="Resend email";return}rb.textContent="Resend in "+cd+"s";cd--}
+ rb.onclick=function(){
+  rb.disabled=true;rb.style.opacity=".5";say("Sending…");
+  firebase.functions().httpsCallable("sendVerificationEmail")().then(function(r){
+   if(r.data&&r.data.alreadyVerified){check(true);return}
+   say("Email sent. It can take a minute to arrive.");cd=60;clearInterval(cdT);tick();cdT=setInterval(tick,1000)
+  }).catch(function(e){say(e&&e.message&&e.code!=="functions/internal"?e.message:"Couldn’t send the email. Try again shortly.",true);rb.disabled=false;rb.style.opacity="";rb.textContent="Resend email"})};
+ $g("vg-o").onclick=function(){Auth.signOut().then(function(){location.href=LOGIN_URL})};
+ setInterval(function(){check(false)},4000);addEventListener("focus",function(){check(false)})}
 if(DEMO_MODE)startDemo();else Auth.onUser(function(u,demo){
  if(demo){location.replace(LOGIN_URL)}
  else if(!u){location.replace(LOGIN_URL)}
+ else if(needsVerify(u)){verifyGate(u)}
  else{
   S.uid=u.uid;start(u.displayName||u.email);u.getIdToken(true).catch(function(){});
   loadPeople();startStatuses();startVideos();startNotifs();
@@ -2314,5 +2352,10 @@ var tries=0,iv=setInterval(function(){if(S.uid&&S.uid!=="demo"&&!DEMO){clearInte
 </script>
 <!-- =================== END DEVELOPER MODULE =================== -->
 
+<script>
+/* Installable app (PWA): registers the service worker. Skipped in the landing-page demo frame. */
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)&&!/[?&]demo=1/.test(location.search)){
+ addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("Service worker not registered:",e)})})}
+</script>
 </body>
 </html>

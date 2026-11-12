@@ -6,6 +6,8 @@
 <title>Sign in to Chatrix</title>
 <link rel="icon" type="image/png" href="chatrix-icon.png">
 <link rel="apple-touch-icon" href="chatrix-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -166,6 +168,7 @@ a:hover,.link:hover{text-decoration-color:var(--ink)}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <script>
 /* ============ AUTH LAYER (swap here) ============
    Fill FIREBASE_CONFIG (public web config) and load the Firebase compat SDK
@@ -193,6 +196,7 @@ var Auth = {
       }).catch(function(e){console.warn("Profile document not written:",e)});
     });
   },
+  sendVerification: function(){ if(!this.ready()) return this.fail(); return firebase.functions().httpsCallable("sendVerificationEmail")(); },
   reset: function(email){ if(!this.ready()) return this.fail(); return firebase.auth().sendPasswordResetEmail(email); },
   onUser: function(cb){ if(this.ready()) firebase.auth().onAuthStateChanged(cb); }
 };
@@ -277,7 +281,7 @@ $("sform").addEventListener("submit",function(e){
  $("st-e").textContent=t?"":"Agree to the Terms to continue.";if(!t)ok=false;
  if(!ok){(document.querySelector("#sform [aria-invalid=true]")||$("s-terms")).focus();return}
  busy($("sgo"),true);
- Auth.busy=true;Auth.signUp(n,m,p).then(function(){location.href="chatrix-home.html"})
+ Auth.busy=true;Auth.signUp(n,m,p).then(function(){return Auth.sendVerification().catch(function(e){console.warn("Verification email not sent:",e)})}).then(function(){location.href="chatrix-home.html"})
  .catch(function(x){Auth.busy=false;say($("banner3"),MSG[x.code]||"Couldn’t create your account. Try again.",x.code==="app/not-configured"?"info":"")})
  .then(function(){busy($("sgo"),false)});
 });
@@ -293,6 +297,11 @@ $("theme").onclick=function(){
  b.setAttribute("aria-label",n==="dark"?"Switch to light theme":"Switch to dark theme");
 };
 $("theme").setAttribute("aria-label",root.getAttribute("data-theme")==="dark"?"Switch to light theme":"Switch to dark theme");
+</script>
+<script>
+/* Installable app (PWA): registers the service worker. Skipped in the landing-page demo frame. */
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)&&!/[?&]demo=1/.test(location.search)){
+ addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(e){console.warn("Service worker not registered:",e)})})}
 </script>
 </body>
 </html>
