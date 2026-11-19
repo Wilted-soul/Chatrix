@@ -717,7 +717,30 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 40px;
     max-width: 100%;
+  }
+  .footer-brand {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding-top: 40px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .footer-brand span {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+  .footer-brand img {
+    height: 30px;
+    width: auto;
+    opacity: 0.7;
+    user-select: none;
   }
   .footer-logo {
     font-family: 'Syne', sans-serif;
@@ -797,7 +820,7 @@
     </div>
     <h1 class="hero-headline">
       <span class="line1">Where devs</span>
-      <span class="line2">connect.</span>
+      <span class="line2">connect</span>
     </h1>
     <p class="hero-sub">Share what you're building, follow people worth following, and talk shop. Video demos, statuses and a profile that shows your work.</p>
     <div class="hero-actions">
@@ -996,7 +1019,11 @@
     <li><a href="chatrix-login.html#signup">Sign up</a></li>
     <li><a href="#features">Features</a></li>
   </ul>
-  <div class="footer-copy">© 2026 Wilted Inc</div>
+  <div class="footer-copy">© 2027 Wilted Inc</div>
+  <div class="footer-brand">
+    <span>A product of</span>
+    <img src="wilted-logo.png" alt="Wilted" width="138" height="30">
+  </div>
 </footer>
 
 <script>
