@@ -1831,11 +1831,59 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     {urls:['turn:YOUR_TURN_HOST:80','turn:YOUR_TURN_HOST:443','turns:YOUR_TURN_HOST:443?transport=tcp'],
      username:'YOUR_TURN_USERNAME', credential:'YOUR_TURN_CREDENTIAL'}
   ]};
-  var C={pc:null,local:null,remote:null,session:null,roomRef:null,roomUnsub:null,
+  ICE.iceServers=ICE.iceServers.filter(function(x){ return JSON.stringify(x).indexOf('YOUR_TURN')<0; });
+  var C={pending:{},pendT:null,pc:null,local:null,remote:null,session:null,roomRef:null,roomUnsub:null,
          iceUnsub:null,inboxUnsub:null,peerId:null,peerName:null,type:'video',role:null,
          active:false,startedAt:0,incoming:null,muted:false,camOff:false,
          ringT:null,answerT:null,seenSessions:{}};
   var overlay,remoteV,localV,statusEl,peerEl,muteBtn,camBtn,incomingEl;
+
+  /* ---- Ringtone engine (Web Audio, no files needed) ---- */
+  var Ring={ctx:null,timer:null,mode:null,titleT:null,origTitle:document.title};
+  function ringCtx(){
+    if(!Ring.ctx){ var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; try{Ring.ctx=new AC();}catch(e){return null;} }
+    if(Ring.ctx.state==='suspended'){ try{Ring.ctx.resume();}catch(e){} }
+    return Ring.ctx;
+  }
+  /* Browsers only allow sound after a tap/keypress, so unlock audio on the first one */
+  ['pointerdown','keydown','touchstart'].forEach(function(ev){
+    document.addEventListener(ev,function(){ ringCtx(); },{passive:true});
+  });
+  function tone(freq,start,dur,vol,type){
+    var c=Ring.ctx; if(!c) return;
+    var o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(vol,start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    o.connect(g); g.connect(c.destination); o.start(start); o.stop(start+dur+0.05);
+  }
+  function ringBurst(){
+    var c=ringCtx(); if(!c) return;
+    var t=c.currentTime+0.05;
+    if(Ring.mode==='incoming'){
+      /* cheerful 2-bar phone melody */
+      var seq=[[880,0],[1175,.16],[880,.32],[1175,.48],[988,.9],[1319,1.06],[988,1.22],[1319,1.38]];
+      seq.forEach(function(n){ tone(n[0],t+n[1],.14,.35,'triangle'); });
+      if(navigator.vibrate) try{navigator.vibrate([400,200,400]);}catch(e){}
+    }else if(Ring.mode==='outgoing'){
+      /* classic ringback: 440 + 480 Hz */
+      tone(440,t,1.0,.12); tone(480,t,1.0,.12);
+    }
+  }
+  function startRing(mode){
+    stopRing(); Ring.mode=mode; ringBurst();
+    Ring.timer=setInterval(ringBurst, mode==='incoming'?2200:3000);
+    if(mode==='incoming'){
+      var on=false; Ring.titleT=setInterval(function(){ on=!on; document.title=on?'📞 Incoming call…':Ring.origTitle; },800);
+    }
+  }
+  function stopRing(){
+    clearInterval(Ring.timer); clearInterval(Ring.titleT);
+    Ring.timer=null; Ring.titleT=null; Ring.mode=null;
+    document.title=Ring.origTitle;
+    if(navigator.vibrate) try{navigator.vibrate(0);}catch(e){}
+  }
 
   function db(){ return firebase.firestore(); }
 
@@ -1870,7 +1918,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
       '<b id="ciPeer">Someone</b>'+
       '<small id="ciType">Incoming call…</small>'+
       '<div class="ci-actions"><button type="button" data-ci-decline>Decline</button>'+
-      '<button type="button" data-ci-accept class="accept">Accept</button></div></div>';
+      '<button type="button" data-ci-accept class="accept">Join</button></div></div>';
     document.body.appendChild(incomingEl);
     incomingEl.querySelector('[data-ci-decline]').onclick=function(){declineIncoming(false)};
     incomingEl.querySelector('[data-ci-accept]').onclick=acceptIncoming;
@@ -1879,7 +1927,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
   function setPeer(n){ if(peerEl) peerEl.textContent=n; }
   function setMuteBtn(){ if(muteBtn){muteBtn.innerHTML=ic(C.muted?'micoff':'mic');muteBtn.classList.toggle('on',C.muted);} }
   function setCamBtn(){ if(camBtn){camBtn.innerHTML=ic(C.camOff?'camoff':'cam');camBtn.classList.toggle('on',C.camOff);} }
-  function hideIncoming(){ if(incomingEl) incomingEl.hidden=true; C.incoming=null; clearTimeout(C.ringT); }
+  function hideIncoming(){ if(incomingEl) incomingEl.hidden=true; C.incoming=null; clearTimeout(C.ringT); stopRing(); }
 
   async function getLocal(video){
     return navigator.mediaDevices.getUserMedia(video
@@ -1902,7 +1950,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     };
     pc.onconnectionstatechange=function(){
       var st=pc.connectionState;
-      if(st==='connected'){ setStatus('Connected'); if(!C.startedAt) C.startedAt=Date.now(); }
+      if(st==='connected'){ stopRing(); setStatus('Connected'); if(!C.startedAt) C.startedAt=Date.now(); }
       else if(st==='disconnected'){ setStatus('Reconnecting…'); setTimeout(function(){ if(C.pc===pc && pc.connectionState==='disconnected'){ endCall(true,'failed'); } },8000); }
       else if(st==='failed'||st==='closed'){ setStatus('Call ended'); endCall(true,'failed'); }
     };
@@ -1923,24 +1971,42 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     },function(e){ console.warn('[Chatrix Calls] ice listener',e); });
   }
 
+  /* Listen for calls where I'm the callee and the call is still ringing.
+     (Old version had limit(20) with no ordering, and only checked friendship once,
+      so new calls were missed whenever the follow lists hadn't loaded yet.) */
+  function evalPending(){
+    var ids=Object.keys(C.pending);
+    if(!ids.length){ clearInterval(C.pendT); C.pendT=null; return; }
+    ids.forEach(function(id){
+      var d=C.pending[id];
+      if(C.seenSessions[id]){ delete C.pending[id]; return; }
+      var t=d.createdAt&&d.createdAt.toMillis?d.createdAt.toMillis():0;
+      if(t && Date.now()-t>180000){ delete C.pending[id]; return; }   /* stale, generous for clock skew */
+      if(C.active||C.incoming) return;                                 /* busy: keep waiting, show after */
+      if(!isFriend(d.callerId)){                                       /* follow lists may still be loading */
+        d._tries=(d._tries||0)+1; if(d._tries>20) delete C.pending[id]; return;
+      }
+      C.seenSessions[id]=true; delete C.pending[id];
+      handleIncoming({session:id, fromId:d.callerId, fromName:d.callerName, type:d.type});
+    });
+  }
   function openInbox(){
     if(C.inboxUnsub||!S.uid) return;
     C.inboxUnsub = db().collection('calls')
-      .where('calleeId','==',S.uid).limit(20)
+      .where('calleeId','==',S.uid).where('status','==','ringing')
       .onSnapshot(function(snap){
         snap.docChanges().forEach(function(ch){
-          if(ch.type!=='added') return;
-          var d=ch.doc.data(), id=ch.doc.id;
-          if(d.status!=='ringing') return;
-          if(C.seenSessions[id]) return;
-          if(C.active) return;
-          var t=d.createdAt&&d.createdAt.toMillis?d.createdAt.toMillis():0;
-          if(!t || Date.now()-t > 45000) return;
-          if(!isFriend(d.callerId)) return;
-          C.seenSessions[id]=true;
-          handleIncoming({session:id, fromId:d.callerId, fromName:d.callerName, type:d.type});
+          var id=ch.doc.id, d=ch.doc.data();
+          if(ch.type==='removed'){
+            delete C.pending[id];
+            if(C.incoming && C.incoming.session===id){ hideIncoming(); toast('Missed call from '+(d.callerName||'someone')); }
+            return;
+          }
+          if(!C.seenSessions[id]) C.pending[id]=d;
         });
-      },function(e){ console.warn('[Chatrix Calls] inbox',e); });
+        evalPending();
+        if(!C.pendT && Object.keys(C.pending).length) C.pendT=setInterval(evalPending,700);
+      },function(e){ console.warn('[Chatrix Calls] inbox',e); toast('Can’t receive calls: '+(e.code||'check Firestore rules')); });
   }
   function handleIncoming(p){
     buildUI();
@@ -1948,6 +2014,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     document.getElementById('ciPeer').textContent=p.fromName||'Someone';
     document.getElementById('ciType').textContent=(p.type==='audio'?'Incoming audio call…':'Incoming video call…');
     incomingEl.hidden=false;
+    startRing('incoming');
     clearTimeout(C.ringT);
     C.ringT=setTimeout(function(){ if(C.incoming&&C.incoming.session===p.session) declineIncoming(true); },30000);
   }
@@ -1972,7 +2039,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
 
     C.active=true; C.role='caller'; C.type=type||'video';
     C.peerId=uid; C.peerName=p.name||'Friend'; C.startedAt=0;
-    buildUI(); overlay.hidden=false; setPeer(C.peerName); setStatus('Calling…');
+    buildUI(); overlay.hidden=false; setPeer(C.peerName); setStatus('Calling…'); startRing('outgoing');
 
     try{
       var room=db().collection('calls').doc();
@@ -1996,6 +2063,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
       var gotAnswer=false;
       C.roomUnsub=room.onSnapshot(function(snap){
         var d=snap.data(); if(!d) return;
+        if(d.status==='accepted'){ stopRing(); setStatus('Connecting…'); }
         if(d.answer && !gotAnswer && pc.signalingState==='have-local-offer'){
           gotAnswer=true;
           pc.setRemoteDescription({type:d.answer.type, sdp:d.answer.sdp})
@@ -2075,7 +2143,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     cleanup(!silent);
   }
   function cleanup(showToastMsg){
-    clearTimeout(C.answerT); clearTimeout(C.ringT);
+    clearTimeout(C.answerT); clearTimeout(C.ringT); stopRing();
     try{ if(C.roomUnsub) C.roomUnsub(); }catch(_){}
     try{ if(C.iceUnsub)  C.iceUnsub();  }catch(_){}
     C.roomUnsub=null; C.iceUnsub=null;
