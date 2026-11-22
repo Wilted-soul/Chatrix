@@ -1828,8 +1828,8 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     {urls:'stun:stun.cloudflare.com:3478'},
     /* TURN relay: required when STUN alone can't connect (mobile data, strict NATs).
        Free option: sign up at metered.ca (Open Relay) and paste your credentials below. */
-    {urls:['turn:YOUR_TURN_HOST:80','turn:YOUR_TURN_HOST:443','turns:YOUR_TURN_HOST:443?transport=tcp'],
-     username:'YOUR_TURN_USERNAME', credential:'YOUR_TURN_CREDENTIAL'}
+    {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],
+     username:'openrelayproject', credential:'openrelayproject'}
   ]};
   ICE.iceServers=ICE.iceServers.filter(function(x){ return JSON.stringify(x).indexOf('YOUR_TURN')<0; });
   var C={pending:{},pendT:null,pc:null,local:null,remote:null,session:null,roomRef:null,roomUnsub:null,
@@ -1948,9 +1948,21 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
       var sub = C.role==='caller'?'callerCandidates':'calleeCandidates';
       C.roomRef.collection(sub).add(e.candidate.toJSON()).catch(function(){});
     };
+    pc.oniceconnectionstatechange=function(){
+      console.log('[Chatrix Calls] ICE state:',pc.iceConnectionState);
+      if(pc.iceConnectionState==='checking') setStatus('Connecting…');
+      if(pc.iceConnectionState==='failed'){ setStatus('Network blocked the call'); }
+    };
+    clearTimeout(C.connT);
+    C.connT=setTimeout(function(){
+      if(C.pc===pc && C.active && pc.connectionState!=='connected'){
+        toast('Couldn’t connect. Network is blocking the call.');
+        endCall(true,'failed');
+      }
+    },30000);
     pc.onconnectionstatechange=function(){
       var st=pc.connectionState;
-      if(st==='connected'){ stopRing(); setStatus('Connected'); if(!C.startedAt) C.startedAt=Date.now(); }
+      if(st==='connected'){ clearTimeout(C.connT); stopRing(); setStatus('Connected'); if(!C.startedAt) C.startedAt=Date.now(); }
       else if(st==='disconnected'){ setStatus('Reconnecting…'); setTimeout(function(){ if(C.pc===pc && pc.connectionState==='disconnected'){ endCall(true,'failed'); } },8000); }
       else if(st==='failed'||st==='closed'){ setStatus('Call ended'); endCall(true,'failed'); }
     };
@@ -1966,7 +1978,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     C.iceUnsub=room.collection(sub).onSnapshot(function(snap){
       snap.docChanges().forEach(function(ch){
         if(ch.type!=='added') return;
-        try{ pc.addIceCandidate(new RTCIceCandidate(ch.doc.data())) }catch(e){}
+        pc.addIceCandidate(new RTCIceCandidate(ch.doc.data())).catch(function(e){ console.warn('[Chatrix Calls] addIce',e); });
       });
     },function(e){ console.warn('[Chatrix Calls] ice listener',e); });
   }
@@ -2143,7 +2155,7 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     cleanup(!silent);
   }
   function cleanup(showToastMsg){
-    clearTimeout(C.answerT); clearTimeout(C.ringT); stopRing();
+    clearTimeout(C.answerT); clearTimeout(C.ringT); clearTimeout(C.connT); stopRing();
     try{ if(C.roomUnsub) C.roomUnsub(); }catch(_){}
     try{ if(C.iceUnsub)  C.iceUnsub();  }catch(_){}
     C.roomUnsub=null; C.iceUnsub=null;
