@@ -1969,9 +1969,22 @@ addEventListener("hashchange",function(){var v=location.hash.replace("#/","");if
     C.pc=pc; return pc;
   }
   async function addLocal(pc){
-    C.local=await getLocal(C.type==='video');
+    var prev=statusEl?statusEl.textContent:'';
+    setStatus('Starting camera & mic…');
+    try{
+      C.local=await getLocal(C.type==='video');
+    }catch(e){
+      /* camera busy / missing / blocked: fall back to audio only instead of hanging */
+      console.warn('[Chatrix Calls] camera failed:',e&&e.name,e&&e.message);
+      if(C.type==='video'){
+        toast('Camera unavailable ('+(e&&e.name||'error')+'). Joining with audio only.');
+        C.camOff=true; setCamBtn();
+        C.local=await getLocal(false);
+      }else throw e;
+    }
     C.local.getTracks().forEach(function(t){pc.addTrack(t,C.local)});
-    if(localV) localV.srcObject=C.local;
+    if(localV){ localV.srcObject=C.local; var pr=localV.play(); if(pr&&pr.catch) pr.catch(function(){}); }
+    setStatus(prev||'Connecting…');
   }
   function listenForRemoteIce(room,sub,pc){
     if(C.iceUnsub){ try{C.iceUnsub()}catch(_){} }
