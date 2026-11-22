@@ -1,8 +1,8 @@
 /* Chatrix service worker: installable app + offline fallback.
    Only same-origin files are handled. Firebase, Supabase, fonts and all other
    cross-origin requests go straight to the network, so live data is never cached. */
-const CACHE = "chatrix-v1";
-const SHELL = ["chatrix-home.html", "chatrix-login.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "chatrix-icon.png"];
+const CACHE = "chatrix-v2";
+const SHELL = ["chatrix-home.html", "chatrix-login.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "chatrix-icon.png", "chatrix-logo.png", "404.html"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -27,7 +27,7 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(
       fetch(req)
         .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; })
-        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match("chatrix-home.html") || caches.match("chatrix-login.html")))
+        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match("chatrix-home.html")).then((r) => r || caches.match("chatrix-login.html")).then((r) => r || caches.match("404.html")))
     );
     return;
   }
